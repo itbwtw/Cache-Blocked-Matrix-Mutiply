@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <x86intrin.h>
 
 #include "timer.c"
 
 #define N_ 4096
 #define K_ 4096
 #define M_ 4096
-const int Block = 8;
+const int CBBLOCK = 8;
+const int SVBLOCK = 8;
 
 typedef double dtype;
 
@@ -34,7 +36,7 @@ void mm_serial (dtype *C, dtype *A, dtype *B, int N, int K, int M)
   }
 }
 
-void mm_cb (dtype *C, dtype *A, dtype *B, int N, int K, int M)
+void mm_cb (dtype *C, dtype *A, dtype *B, int N, int K, int M, int Block)
 {
   /* =======================================================+ */
   /* Implement your own cache-blocked matrix-matrix multiply  */
@@ -50,11 +52,24 @@ void mm_cb (dtype *C, dtype *A, dtype *B, int N, int K, int M)
 				  }
 }
 
-void mm_sv (dtype *C, dtype *A, dtype *B, int N, int K, int M)
+void mm_sv (dtype *C, dtype *A, dtype *B, int N, int K, int M, int Block)
 {
   /* =======================================================+ */
   /* Implement your own SIMD-vectorized matrix-matrix multiply  */
   /* =======================================================+ */
+    for(int kk = 0; kk < K; kk += Block)
+	  for(int ii = 0; ii < N; ii += Block)
+		  for(int jj = 0; jj < M; jj += Block)
+			  for(int k = kk; k < kk + Block && k < K; k++)
+				  for(int i = ii; i < ii + Block && i < N; i++) {
+					  __m128d a2 = _mm_set1_pd(A[i * K + k]);
+					  for(int j=jj; j < jj + Block && j < M; j= j + 2){
+						  __m128d c2 = _mm_loadu_pd(&C[i * M + j]);
+						  __m128d b2 = _mm_loadu_pd(&B[k * M + j]);
+						  c2 = _mm_add_pd(_mm_mul_pd(a2,b2),c2);
+						  _mm_storeu_pd(&C[i * M + j], c2);
+					  }
+				  }
 }
 
 int main(int argc, char** argv)
@@ -73,8 +88,6 @@ int main(int argc, char** argv)
     M = M_;
     printf("N: %d K: %d M: %d\n", N, K, M);	
   }
-  printf("%d\n",sizeof(dtype));
-  return 0 ;
 
   dtype *A = (dtype*) malloc (N * K * sizeof (dtype));
   dtype *B = (dtype*) malloc (K * M * sizeof (dtype));
@@ -116,7 +129,7 @@ int main(int argc, char** argv)
   printf("Cache-blocked matrix multiply\n");
   stopwatch_start (timer);
   /* do C += A * B */
-  mm_cb (C_cb, A, B, N, K, M);
+  mm_cb (C_cb, A, B, N, K, M, CBBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
   printf("time for cache-blocked implementation: %Lg seconds\n", t);
@@ -127,7 +140,7 @@ int main(int argc, char** argv)
   printf("SIMD-vectorized Cache-blocked matrix multiply\n");
   stopwatch_start (timer);
   /* do C += A * B */
-  mm_sv (C_sv, A, B, N, K, M);
+  mm_sv (C_sv, A, B, N, K, M, SVBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
   printf("time for SIMD-vectorized cache-blocked implementation: %Lg seconds\n", t);
