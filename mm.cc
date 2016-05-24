@@ -8,6 +8,7 @@
 #define N_ 4096
 #define K_ 4096
 #define M_ 4096
+const int Block = 8;
 
 typedef double dtype;
 
@@ -18,7 +19,7 @@ void verify(dtype *C, dtype *C_ans, int N, int M)
   for(i = 0; i < N * M; i++) {
     if(abs (C[i] - C_ans[i]) > 1e-6) cnt++;
   }
-  if(cnt != 0) printf("ERROR\n"); else printf("SUCCESS\n");
+  if(cnt != 0) printf("ERROR:%d\n",cnt); else printf("SUCCESS\n");
 }
 
 void mm_serial (dtype *C, dtype *A, dtype *B, int N, int K, int M)
@@ -37,7 +38,16 @@ void mm_cb (dtype *C, dtype *A, dtype *B, int N, int K, int M)
 {
   /* =======================================================+ */
   /* Implement your own cache-blocked matrix-matrix multiply  */
-  /* =======================================================+ */
+  /* =======================================================+*/
+  for(int kk = 0; kk < K; kk += Block)
+	  for(int ii = 0; ii < N; ii += Block)
+		  for(int jj = 0; jj < M; jj += Block)
+			  for(int k = kk; k < kk + Block && k < K; k++)
+				  for(int i = ii; i < ii + Block && i < N; i++) {
+					  double r = A[i * K + k];
+					  for(int j=jj; j < jj + Block && j < M; j++)
+						  C[i * M + j] += r * B[k * M + j];
+				  }
 }
 
 void mm_sv (dtype *C, dtype *A, dtype *B, int N, int K, int M)
@@ -63,6 +73,8 @@ int main(int argc, char** argv)
     M = M_;
     printf("N: %d K: %d M: %d\n", N, K, M);	
   }
+  printf("%d\n",sizeof(dtype));
+  return 0 ;
 
   dtype *A = (dtype*) malloc (N * K * sizeof (dtype));
   dtype *B = (dtype*) malloc (K * M * sizeof (dtype));
