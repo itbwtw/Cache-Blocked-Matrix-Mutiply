@@ -111,6 +111,7 @@ int main(int argc, char** argv)
   bzero(C, N * M * sizeof (dtype));
   bzero(C_cb, N * M * sizeof (dtype));
   bzero(C_sv, N * M * sizeof (dtype));
+  double GFLOP = M * N * (2 * K - 1) / (1e9) ;
 
   stopwatch_init ();
   struct stopwatch_t* timer = stopwatch_create ();
@@ -123,7 +124,7 @@ int main(int argc, char** argv)
   mm_serial (C, A, B, N, K, M);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for naive implementation: %Lg seconds\n\n", t);
+  printf("time for naive implementation: %Lg seconds => %Lg GFLOPs\n\n", t,GFLOP/t);
 
 
   printf("Cache-blocked matrix multiply\n");
@@ -132,7 +133,7 @@ int main(int argc, char** argv)
   mm_cb (C_cb, A, B, N, K, M, CBBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for cache-blocked implementation: %Lg seconds\n", t);
+  printf("time for cache-blocked implementation: %Lg seconds => %Lg GFLOPs\n\n", t, GFLOP/t);
 
   /* verify answer */
   verify (C_cb, C, N, M);
@@ -143,7 +144,7 @@ int main(int argc, char** argv)
   mm_sv (C_sv, A, B, N, K, M, SVBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for SIMD-vectorized cache-blocked implementation: %Lg seconds\n", t);
+  printf("time for SIMD-vectorized cache-blocked implementation: %Lg seconds => %Lg GFLOPs\n", t, GFLOP/t);
 
   /* verify answer */
   verify (C_sv, C, N, M);
