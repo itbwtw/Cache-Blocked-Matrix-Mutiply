@@ -9,8 +9,8 @@
 #define N_ 4096
 #define K_ 4096
 #define M_ 4096
-const int CBBLOCK = 8;
-const int SVBLOCK = 8;
+const int CBBLOCK = 256; //range from 256 to 128 good performence
+const int SVBLOCK = 256;
 
 typedef double dtype;
 
@@ -111,7 +111,10 @@ int main(int argc, char** argv)
   bzero(C, N * M * sizeof (dtype));
   bzero(C_cb, N * M * sizeof (dtype));
   bzero(C_sv, N * M * sizeof (dtype));
-  double GFLOP = M * N * (2 * K - 1) / (1e9) ;
+  long double work1 = M*N / (1e6);
+  long double work2 = (2*K-1)/(1e3);
+  long double GFLOP = work1*work2;
+  printf("Work:%Lf GB\n",GFLOP);
 
   stopwatch_init ();
   struct stopwatch_t* timer = stopwatch_create ();
@@ -121,10 +124,10 @@ int main(int argc, char** argv)
   printf("Naive matrix multiply\n");
   stopwatch_start (timer);
   /* do C += A * B */
-  mm_serial (C, A, B, N, K, M);
+//  mm_serial (C, A, B, N, K, M);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for naive implementation: %Lg seconds => %Lg GFLOPs\n\n", t,GFLOP/t);
+  printf("time for naive implementation: %Lg seconds => %Lf GFLOPs\n\n", t,GFLOP/t);
 
 
   printf("Cache-blocked matrix multiply\n");
@@ -133,18 +136,18 @@ int main(int argc, char** argv)
   mm_cb (C_cb, A, B, N, K, M, CBBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for cache-blocked implementation: %Lg seconds => %Lg GFLOPs\n\n", t, GFLOP/t);
+  printf("time for cache-blocked implementation: %Lg seconds => %Lf GFLOPs\n", t, GFLOP/t);
 
   /* verify answer */
   verify (C_cb, C, N, M);
 
-  printf("SIMD-vectorized Cache-blocked matrix multiply\n");
+  printf("\nSIMD-vectorized Cache-blocked matrix multiply\n");
   stopwatch_start (timer);
   /* do C += A * B */
   mm_sv (C_sv, A, B, N, K, M, SVBLOCK);
   t = stopwatch_stop (timer);
   printf("Done\n");
-  printf("time for SIMD-vectorized cache-blocked implementation: %Lg seconds => %Lg GFLOPs\n", t, GFLOP/t);
+  printf("time for SIMD-vectorized cache-blocked implementation: %Lf seconds => %Lg GFLOPs\n", t, GFLOP/t);
 
   /* verify answer */
   verify (C_sv, C, N, M);
