@@ -9,7 +9,7 @@
 #define N_ 4096
 #define K_ 4096
 #define M_ 4096
-const int CBBLOCK = 256; //range from 256 to 128 good performence
+const int CBBLOCK = 256;
 const int SVBLOCK = 256;
 
 typedef double dtype;
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
   printf("Naive matrix multiply\n");
   stopwatch_start (timer);
   /* do C += A * B */
-//  mm_serial (C, A, B, N, K, M);
+  mm_serial (C, A, B, N, K, M);
   t = stopwatch_stop (timer);
   printf("Done\n");
   printf("time for naive implementation: %Lg seconds => %Lf GFLOPs\n\n", t,GFLOP/t);
